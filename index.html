@@ -765,341 +765,81 @@
   .auth-user button{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 10px;font:600 11px inherit;}
   .cloud-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--done-4);background:var(--panel-soft);border:1px solid var(--line);padding:4px 8px;border-radius:999px;}
 
-/* ===== Mobile UI enhancement: layout only, no feature/logic changes ===== */
-html { overflow-x:hidden; }
-body { overflow-x:hidden; }
+/* Enhanced login UI */
+.auth-card{width:min(430px,100%);padding:30px}
+.auth-card h2{margin-top:14px}
+.auth-password-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
+.auth-password-label label{margin-bottom:0}
+.auth-link{border:0;background:none;color:var(--select);padding:0;font:600 11.5px/1.3 inherit;cursor:pointer}
+.auth-link:hover{text-decoration:underline}
+.auth-password-wrap{position:relative}
+.auth-password-wrap input{padding-right:58px}
+.password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);font:600 11px inherit;padding:5px 6px;cursor:pointer}
+.password-toggle:hover{color:var(--ink)}
+.auth-main-btn,.auth-signup-btn{width:100%;min-height:44px;border-radius:8px}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted);font-size:11px}
+.auth-divider::before,.auth-divider::after{content:"";height:1px;flex:1;background:var(--line)}
+.auth-switch{text-align:center;margin:12px 0 0!important;font-size:11.5px!important}
+.auth-msg.success{color:var(--done-4)}
+.auth-msg.error{color:var(--danger)}
+.auth-msg.info{color:var(--muted)}
+@media(max-width:600px){.auth-card{padding:24px 18px}}
 
-@media (max-width: 900px) {
-  .app {
-    width:100%;
-    max-width:none;
-    padding:22px 16px 70px;
-  }
 
-  .top {
-    align-items:center;
-    margin-bottom:18px;
-    gap:12px;
-  }
-
-  .brand h1 { font-size:clamp(26px, 7vw, 34px); }
-  .brand p { font-size:12px; }
-
-  .header-actions { flex-wrap:wrap; justify-content:flex-end; }
-  .auth-user { max-width:190px; }
-  .auth-user span {
-    max-width:120px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  .page-tabs {
-    overflow-x:auto;
-    flex-wrap:nowrap;
-    scrollbar-width:none;
-    -webkit-overflow-scrolling:touch;
-    margin-left:-4px;
-    margin-right:-4px;
-    padding:0 4px 10px;
-  }
-  .page-tabs::-webkit-scrollbar { display:none; }
-  .page-tab {
-    flex:0 0 auto;
-    min-height:42px;
-    padding:10px 10px 11px;
-    margin-right:4px;
-    white-space:nowrap;
-  }
-
-  .nav {
-    flex-wrap:nowrap;
-    overflow:hidden;
-    gap:8px;
-    padding-bottom:12px;
-    margin-bottom:16px;
-  }
-  .nav-group { min-width:0; }
-  .datepart { min-width:0; }
-  .nav-title {
-    min-width:0;
-    max-width:52vw;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-    font-size:18px;
-  }
-  .nav-title.year { min-width:44px; }
-  .nav .btn-ghost { flex:none; }
-
-  .content,
-  .daily-layout,
-  .overview-top {
-    grid-template-columns:1fr;
-    gap:14px;
-  }
-
-  .panel {
-    padding:16px;
-    border-radius:12px;
-  }
-
-  .stats {
-    grid-template-columns:repeat(3,1fr);
-    margin-bottom:16px;
-  }
-  .stat { padding:12px 10px; }
-  .stat .stat-value { font-size:21px; }
-  .stat .stat-label { font-size:10px; }
-
-  .calendar-grid { gap:4px; }
-  .weekday-row { margin-bottom:5px; }
-  .cell {
-    min-width:0;
-    border-radius:7px;
-    font-size:12px;
-  }
-
-  .checklist { gap:3px; }
-  .checklist li {
-    min-height:48px;
-    padding:9px 5px;
-    gap:10px;
-  }
-  .chk-wrap { width:22px; height:22px; }
-  .checklist label { font-size:14px; }
-
-  .donut-wrap {
-    flex-wrap:wrap;
-    justify-content:center;
-  }
-  .donut-legend-list {
-    width:100%;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-
-  .week-grid-scroll,
-  .week-table-scroll,
-  .heatmap-scroll {
-    margin-left:-2px;
-    margin-right:-2px;
-    padding-bottom:6px;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:thin;
-  }
-
-  table.week-grid { min-width:560px; }
-  table.week-table { min-width:640px; }
-
-  .section-block { margin-top:16px; }
-  .section-title {
-    font-size:16px;
-    align-items:flex-start;
-  }
-
-  .goal-add-form {
-    grid-template-columns:1fr;
-    gap:9px;
-  }
-  .goal-add-form input,
-  .goal-add-form select,
-  .goal-add-form button {
-    min-height:42px;
-    width:100%;
-  }
-  .goal-add-form button { padding:10px 16px; }
-
-  .goal-card { padding:13px; }
-  .goal-card-top { gap:8px; }
-  .goal-meta-row { align-items:flex-start; }
-  .goal-actions { flex:none; }
-
-  .comparison-grid {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:8px;
-  }
-
-  .month-perf-grid {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:8px;
-  }
-
-  .theme-grid {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:8px;
-  }
-
-  .color-row,
-  .toggle-row {
-    min-height:48px;
-  }
-
-  .settings-actions {
-    display:grid;
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-  .settings-actions button {
-    width:100%;
-    min-height:42px;
-  }
-
-  .habits-tab {
-    top:auto;
-    bottom:18px;
-    transform:none;
-    writing-mode:horizontal-tb;
-    padding:10px 14px;
-    border-radius:999px;
-    left:14px;
-    box-shadow:0 6px 18px rgba(42,36,30,.18);
-  }
-
-  .habits-drawer {
-    top:auto;
-    bottom:0;
-    left:0;
-    width:100%;
-    max-width:none;
-    height:min(82vh,680px);
-    border-right:none;
-    border-top:1px solid var(--line);
-    border-radius:18px 18px 0 0;
-    padding:18px 16px 24px;
-    transform:translateY(100%);
-    transition:transform .25s ease;
-  }
-  .habits-drawer.open { transform:translateY(0); }
-
-  .modal-overlay {
-    align-items:flex-end;
-    padding:10px;
-  }
-  .modal-box {
-    max-width:none;
-    border-radius:16px;
-    padding:18px;
-    max-height:90vh;
-    overflow-y:auto;
-  }
-
-  .auth-overlay {
-    padding:14px;
-    align-items:center;
-  }
-  .auth-card {
-    padding:22px 18px;
-    border-radius:16px;
-  }
-  .auth-actions { flex-direction:column; }
-  .auth-actions button { min-height:44px; }
-
-  .toast {
-    width:calc(100% - 28px);
-    text-align:center;
-    bottom:16px;
-  }
-
-  .storage-note {
-    margin-left:16px;
-    margin-right:16px;
-  }
+/* ===== Checkbox interaction fix ===== */
+.chk-wrap {
+  position:relative;
+  width:22px;
+  height:22px;
+  flex:0 0 22px;
+  display:block;
+  cursor:pointer;
+  touch-action:manipulation;
 }
-
-@media (max-width: 600px) {
-  .app { padding:16px 12px 72px; }
-
-  .top {
-    align-items:flex-start;
-    flex-direction:column;
-  }
-  .header-actions {
-    width:100%;
-    justify-content:space-between;
-  }
-  .auth-user { margin-right:0; }
-
-  .page-tabs { margin-bottom:16px; }
-
-  .nav {
-    justify-content:space-between;
-  }
-  .nav-group { flex:1; }
-  .datepart { justify-content:flex-start; }
-  .nav-title {
-    font-size:16px;
-    max-width:calc(100vw - 150px);
-  }
-  .arrow {
-    width:34px;
-    height:34px;
-    flex:none;
-  }
-
-  .stats {
-    gap:1px;
-  }
-  .stat {
-    padding:11px 7px;
-    min-width:0;
-  }
-  .stat .stat-value {
-    font-size:19px;
-    white-space:nowrap;
-  }
-  .stat .stat-label {
-    line-height:1.25;
-  }
-
-  .panel { padding:14px; }
-
-  .calendar-grid { gap:3px; }
-  .cell {
-    border-width:1.5px;
-    border-radius:6px;
-    font-size:11px;
-  }
-
-  .overview-top { gap:12px; }
-  .chart-card h3 { margin-bottom:10px; }
-
-  .comparison-grid,
-  .month-perf-grid {
-    grid-template-columns:1fr 1fr;
-  }
-
-  .goal-card-top {
-    flex-direction:column;
-  }
-  .goal-name-row { width:100%; }
-  .goal-actions { width:100%; justify-content:flex-end; }
-  .goal-meta-row { gap:7px; }
-  .goal-progress-row { gap:7px; }
-
-  .review-box { padding:12px; }
-
-  .heatmap-wrap { padding:14px 12px; }
-  .heatmap-scroll { overflow-x:auto; }
-
-  .auth-card h2 { font-size:22px; }
+.chk-wrap input {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  margin:0;
+  cursor:pointer;
+  z-index:2;
 }
-
-@media (max-width: 380px) {
-  .app { padding-left:9px; padding-right:9px; }
-
-  .panel { padding:12px; }
-  .page-tab { padding-left:8px; padding-right:8px; }
-  .stat .stat-value { font-size:17px; }
-  .stat .stat-label { font-size:9px; }
-
-  .comparison-grid,
-  .month-perf-grid,
-  .theme-grid {
-    grid-template-columns:1fr;
-  }
+.chk-box {
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  border:2px solid var(--line);
+  border-radius:6px;
+  background:var(--panel);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background .12s,border-color .12s,transform .08s;
+}
+.chk-wrap:hover .chk-box {
+  border-color:var(--select);
+}
+.chk-wrap:active .chk-box {
+  transform:scale(.94);
+}
+.chk-wrap input:checked + .chk-box {
+  background:var(--done-3);
+  border-color:var(--done-3);
+}
+.chk-wrap input:checked + .chk-box svg {
+  opacity:1;
+  transform:scale(1);
+}
+.chk-box svg {
+  width:13px;
+  height:13px;
+  opacity:0;
+  transform:scale(.7);
+  transition:opacity .12s,transform .12s;
+  pointer-events:none;
 }
 
 </style>
@@ -1108,70 +848,22 @@ body { overflow-x:hidden; }
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-card">
     <span class="cloud-badge">☁ Cloud sync</span>
-    <h2>Your habits, wherever you sign in.</h2>
-    <p>Create an account or sign in. Your habits, history, goals and settings are stored in the cloud, so clearing browser data will not erase them.</p>
+    <h2 id="authTitle">Welcome back</h2>
+    <p id="authSubtitle">Sign in to keep your habits, history, goals and settings synced across devices.</p>
     <form id="authForm">
-      <div class="auth-field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required></div>
-      <div class="auth-field"><label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></div>
-      <div class="auth-actions"><button class="auth-primary" type="submit" id="authSubmit">Sign in</button><button class="auth-secondary" type="button" id="authSignup">Create account</button></div>
-      <p class="auth-msg" id="authMsg"></p>
+      <div class="auth-field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+      <div class="auth-field">
+        <div class="auth-password-label"><label for="authPassword">Password</label><button type="button" class="auth-link" id="forgotPasswordBtn">Forgot password?</button></div>
+        <div class="auth-password-wrap"><input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Enter your password" required><button type="button" class="password-toggle" id="passwordToggle">Show</button></div>
+      </div>
+      <button class="auth-primary auth-main-btn" type="submit" id="authSubmit">Sign in</button>
+      <div class="auth-divider"><span>or</span></div>
+      <button class="auth-secondary auth-signup-btn" type="button" id="authSignup">Create account</button>
+      <p class="auth-switch">Don't have an account? <button type="button" class="auth-link" id="switchToSignup">Sign up</button></p>
+      <p class="auth-msg" id="authMsg" role="alert" aria-live="polite"></p>
     </form>
   </div>
 </div>
-
-
-<button class="habits-tab" id="habitsNavToggle" aria-label="Open habits panel">Habits</button>
-
-<div class="app">
-
-  <header class="top">
-    <div class="brand">
-      <h1>Habit Tracker</h1>
-      <p>Keep the score with yourself, one day at a time.</p>
-    </div>
-    <div class="header-actions">
-      <div class="auth-user"><span id="authUserEmail"></span><button type="button" id="signOutBtn">Sign out</button></div>
-      <button class="btn-ghost" id="todayBtn">Today</button>
-    </div>
-  </header>
-
-  <div class="page-tabs" id="pageTabs">
-    <button class="page-tab active" data-page="daily">Daily</button>
-    <button class="page-tab" data-page="weekly">Weekly</button>
-    <button class="page-tab" data-page="monthly">Monthly</button>
-    <button class="page-tab" data-page="year">Year</button>
-    <button class="page-tab" data-page="settings">⚙ Customize</button>
-  </div>
-
-  <div class="page" id="dailyPage">
-    <nav class="nav">
-      <div class="nav-group">
-        <div class="datepart">
-          <button class="arrow" id="prevDay" aria-label="Previous day">‹</button>
-          <span class="nav-title" id="dailyDateLabel">—</span>
-          <button class="arrow" id="nextDay" aria-label="Next day">›</button>
-        </div>
-      </div>
-      <button class="btn-ghost" id="dailyTodayBtn">Today</button>
-    </nav>
-
-    <div class="content daily-layout">
-      <section class="panel day-panel">
-        <p class="muted" id="dailySummary">—</p>
-        <div class="bar-track" style="margin-bottom:16px;"><div class="bar-fill" id="dailyBarFill" style="width:0%;"></div></div>
-        <ul class="checklist" id="dailyChecklist"></ul>
-      </section>
-
-      <div class="side">
-        <div class="panel chart-card donut-card">
-          <h3>Today</h3>
-          <div id="dailyDonutChart"></div>
-        </div>
-        <div class="panel chart-card">
-          <h3>Last 14 days</h3>
-          <div id="dailyTrendChart"></div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -3339,22 +3031,86 @@ body { overflow-x:hidden; }
     showAuth(false);
     return true;
   }
+  function setAuthMessage(message,type="info"){
+    const el=$("#authMsg"); el.textContent=message||""; el.className="auth-msg "+type;
+  }
+  function validEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+  function setAuthMode(mode){
+    const signup=mode==="signup";
+    $("#authTitle").textContent=signup?"Create your account":"Welcome back";
+    $("#authSubtitle").textContent=signup
+      ?"Create an account to keep your habits, history, goals and settings synced."
+      :"Sign in to keep your habits, history, goals and settings synced across devices.";
+    $("#authSubmit").textContent=signup?"Create account":"Sign in";
+    $("#authSignup").classList.toggle("hidden",signup);
+    $("#forgotPasswordBtn").classList.toggle("hidden",signup);
+    document.querySelector(".auth-switch").innerHTML=signup
+      ?'Already have an account? <button type="button" class="auth-link" id="switchToSignin">Sign in</button>'
+      :'Don\\'t have an account? <button type="button" class="auth-link" id="switchToSignup">Sign up</button>';
+    setAuthMessage("");
+    const b=signup?$("#switchToSignin"):$("#switchToSignup");
+    if(b) b.addEventListener("click",()=>setAuthMode(signup?"signin":"signup"));
+  }
+
   $("#authForm").addEventListener("submit",async e=>{
-    e.preventDefault(); setAuthMessage("Signing in…");
+    e.preventDefault();
     const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
-    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
-    if(error){setAuthMessage(error.message);return;}
-    currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=currentUser.email||"Signed in"; showAuth(false); await init();
+    if(!validEmail(email)){setAuthMessage("Please enter a valid email address.","error");$("#authEmail").focus();return;}
+    if(password.length<6){setAuthMessage("Password must be at least 6 characters.","error");$("#authPassword").focus();return;}
+
+    const signup=$("#authSubmit").textContent==="Create account";
+    $("#authSubmit").disabled=true;
+    setAuthMessage(signup?"Creating your account…":"Signing you in…");
+    try{
+      if(signup){
+        const {data,error}=await supabaseClient.auth.signUp({email,password});
+        if(error){
+          const x=(error.message||"").toLowerCase();
+          setAuthMessage(x.includes("already")?"An account already exists with this email. Try signing in or reset your password.":error.message,"error");
+          return;
+        }
+        if(data.session){
+          currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=currentUser.email||"Signed in"; showAuth(false); await init();
+        }else{
+          setAuthMessage("Account created. Check your email to confirm your account, then sign in.","success");
+          setAuthMode("signin"); $("#authEmail").value=email; $("#authPassword").value="";
+        }
+      }else{
+        const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+        if(error){
+          const x=(error.message||"").toLowerCase();
+          if(x.includes("invalid login credentials")||x.includes("invalid credentials"))
+            setAuthMessage("Wrong password, or no account exists with this email.","error");
+          else if(x.includes("email not confirmed"))
+            setAuthMessage("Please confirm your email first. Check your inbox for the confirmation link.","error");
+          else setAuthMessage(error.message,"error");
+          return;
+        }
+        currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=currentUser.email||"Signed in"; showAuth(false); await init();
+      }
+    }finally{ $("#authSubmit").disabled=false; }
   });
-  $("#authSignup").addEventListener("click",async()=>{
-    const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
-    if(!email||password.length<6){setAuthMessage("Enter an email and a password of at least 6 characters.");return;}
-    setAuthMessage("Creating account…");
-    const {data,error}=await supabaseClient.auth.signUp({email,password});
-    if(error){setAuthMessage(error.message);return;}
-    if(data.session){ currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=email; showAuth(false); await init(); }
-    else setAuthMessage("Account created. Check your email to confirm it, then sign in.");
+
+  $("#authSignup").addEventListener("click",()=>setAuthMode("signup"));
+
+  $("#forgotPasswordBtn").addEventListener("click",async()=>{
+    const email=$("#authEmail").value.trim();
+    if(!validEmail(email)){setAuthMessage("Enter your email address first, then click Forgot password.","error");$("#authEmail").focus();return;}
+    $("#forgotPasswordBtn").disabled=true; setAuthMessage("Sending password reset email…");
+    try{
+      const redirectTo=window.location.origin+window.location.pathname;
+      const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});
+      if(error) setAuthMessage(error.message,"error");
+      else setAuthMessage("If an account exists for this email, a password reset link has been sent.","success");
+    }finally{ $("#forgotPasswordBtn").disabled=false; }
   });
+
+  $("#passwordToggle").addEventListener("click",()=>{
+    const input=$("#authPassword"), visible=input.type==="text";
+    input.type=visible?"password":"text";
+    $("#passwordToggle").textContent=visible?"Show":"Hide";
+  });
+
   $("#signOutBtn").addEventListener("click",async()=>{ if(supabaseClient) await supabaseClient.auth.signOut(); location.reload(); });
   if(supabaseClient){ supabaseClient.auth.onAuthStateChange((_event,session)=>{ if(session?.user){currentUser=session.user;cloudReady=true;} }); }
 
