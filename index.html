@@ -786,6 +786,15 @@
 @media(max-width:600px){.auth-card{padding:24px 18px}}
 
 
+
+/* ===== Password recovery UI ===== */
+.auth-recovery{display:none;margin-top:16px}
+.auth-recovery.open{display:block}
+.auth-recovery h3{font-family:'Fraunces',serif;font-size:18px;margin:0 0 5px}
+.auth-recovery p{margin:0 0 14px!important}
+.auth-recovery .auth-recovery-actions{display:flex;gap:8px;margin-top:12px}
+.auth-recovery button{min-height:42px;flex:1;border-radius:8px;font:600 13px inherit}
+
 /* ===== Checkbox interaction fix ===== */
 .chk-wrap {
   position:relative;
@@ -862,6 +871,27 @@
       <p class="auth-switch">Don't have an account? <button type="button" class="auth-link" id="switchToSignup">Sign up</button></p>
       <p class="auth-msg" id="authMsg" role="alert" aria-live="polite"></p>
     </form>
+    <div class="auth-recovery" id="authRecovery">
+      <h3>Set a new password</h3>
+      <p>Choose a new password for your account.</p>
+      <div class="auth-field">
+        <label for="newPassword">New password</label>
+        <div class="auth-password-wrap">
+          <input id="newPassword" type="password" minlength="6" autocomplete="new-password" placeholder="At least 6 characters">
+          <button type="button" class="password-toggle" id="newPasswordToggle">Show</button>
+        </div>
+      </div>
+      <div class="auth-field">
+        <label for="confirmPassword">Confirm password</label>
+        <div class="auth-password-wrap">
+          <input id="confirmPassword" type="password" minlength="6" autocomplete="new-password" placeholder="Repeat your password">
+        </div>
+      </div>
+      <div class="auth-recovery-actions">
+        <button class="auth-primary" type="button" id="saveNewPassword">Update password</button>
+      </div>
+      <p class="auth-msg" id="recoveryMsg" role="alert" aria-live="polite"></p>
+    </div>
   </div>
 </div>
     </div>
@@ -3013,28 +3043,17 @@
   });
 
   /* ---------------- Cloud authentication ---------------- */
-  function setAuthMessage(msg){ const el=$("#authMsg"); if(el) el.textContent=msg||""; }
-  function showAuth(show){ $("#authOverlay").classList.toggle("hidden",!show); }
-  async function initializeCloudAuth(){
-    if(!CLOUD_CONFIGURED || !supabaseClient){
-      showAuth(true);
-      setAuthMessage("Add your Supabase URL and publishable key in this HTML file before using cloud sync.");
-      $("#authSubmit").disabled=true; $("#authSignup").disabled=true;
-      return false;
-    }
-    const {data,error}=await supabaseClient.auth.getSession();
-    if(error){setAuthMessage(error.message);showAuth(true);return false;}
-    currentUser=data.session?.user||null;
-    if(!currentUser){showAuth(true);return false;}
-    cloudReady=true;
-    $("#authUserEmail").textContent=currentUser.email||"Signed in";
-    showAuth(false);
-    return true;
-  }
   function setAuthMessage(message,type="info"){
-    const el=$("#authMsg"); el.textContent=message||""; el.className="auth-msg "+type;
+    const el=$("#authMsg");
+    if(el){ el.textContent=message||""; el.className="auth-msg "+type; }
   }
+  function setRecoveryMessage(message,type="info"){
+    const el=$("#recoveryMsg");
+    if(el){ el.textContent=message||""; el.className="auth-msg "+type; }
+  }
+  function showAuth(show){ $("#authOverlay").classList.toggle("hidden",!show); }
   function validEmail(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+
   function setAuthMode(mode){
     const signup=mode==="signup";
     $("#authTitle").textContent=signup?"Create your account":"Welcome back";
@@ -3052,28 +3071,116 @@
     if(b) b.addEventListener("click",()=>setAuthMode(signup?"signin":"signup"));
   }
 
+  function showRecovery(show){
+    const box=$("#authRecovery");
+    if(box) box.classList.toggle("open",!!show);
+    if(show){
+      showAuth(true);
+      setAuthMode("signin");
+      $("#authTitle").textContent="Reset your password";
+      $("#authSubtitle").textContent="Enter a new password for your account.";
+      $("#authForm").classList.add("hidden");
+      setRecoveryMessage("");
+      $("#newPassword").focus();
+    }else{
+      $("#authForm").classList.remove("hidden");
+      setRecoveryMessage("");
+    }
+  }
+
+  async function initializeCloudAuth(){
+    if(!CLOUD_CONFIGURED || !supabaseClient){
+      showAuth(true);
+      setAuthMessage("Add your Supabase URL and publishable key in this HTML file before using cloud sync.","error");
+      $("#authSubmit").disabled=true;
+      $("#authSignup").disabled=true;
+      return false;
+    }
+    const {data,error}=await supabaseClient.auth.getSession();
+    if(error){
+      setAuthMessage(error.message,"error");
+      showAuth(true);
+      return false;
+    }
+    currentUser=data.session?.user||null;
+    if(!currentUser){ showAuth(true); return false; }
+    cloudReady=true;
+    $("#authUserEmail").textContent=currentUser.email||"Signed in";
+    showAuth(false);
+    return true;
+  }
+
+  // Register this before initialization so password-recovery redirects are caught.
+  if(supabaseClient){
+    supabaseClient.auth.onAuthStateChange((event,session)=>{
+      if(event==="PASSWORD_RECOVERY"){
+        currentUser=session?.user||null;
+        showRecovery(true);
+        return;
+      }
+      if(session?.user){
+        currentUser=session.user;
+        cloudReady=true;
+        $("#authUserEmail").textContent=currentUser.email||"Signed in";
+        if(event==="SIGNED_IN"){
+          showAuth(false);
+          init();
+        }
+      }
+    });
+  }
+
   $("#authForm").addEventListener("submit",async e=>{
     e.preventDefault();
-    const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
-    if(!validEmail(email)){setAuthMessage("Please enter a valid email address.","error");$("#authEmail").focus();return;}
-    if(password.length<6){setAuthMessage("Password must be at least 6 characters.","error");$("#authPassword").focus();return;}
+    const email=$("#authEmail").value.trim();
+    const password=$("#authPassword").value;
+    if(!validEmail(email)){
+      setAuthMessage("Please enter a valid email address.","error");
+      $("#authEmail").focus();
+      return;
+    }
+    if(password.length<6){
+      setAuthMessage("Password must be at least 6 characters.","error");
+      $("#authPassword").focus();
+      return;
+    }
 
     const signup=$("#authSubmit").textContent==="Create account";
     $("#authSubmit").disabled=true;
     setAuthMessage(signup?"Creating your account…":"Signing you in…");
+
     try{
       if(signup){
-        const {data,error}=await supabaseClient.auth.signUp({email,password});
+        const redirectTo=window.location.origin+window.location.pathname;
+        const {data,error}=await supabaseClient.auth.signUp({
+          email,
+          password,
+          options:{emailRedirectTo:redirectTo}
+        });
         if(error){
           const x=(error.message||"").toLowerCase();
-          setAuthMessage(x.includes("already")?"An account already exists with this email. Try signing in or reset your password.":error.message,"error");
+          setAuthMessage(
+            x.includes("already")
+              ?"An account already exists with this email. Try signing in or reset your password."
+              :error.message,
+            "error"
+          );
           return;
         }
         if(data.session){
-          currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=currentUser.email||"Signed in"; showAuth(false); await init();
+          currentUser=data.user;
+          cloudReady=true;
+          $("#authUserEmail").textContent=currentUser.email||email;
+          showAuth(false);
+          await init();
         }else{
-          setAuthMessage("Account created. Check your email to confirm your account, then sign in.","success");
-          setAuthMode("signin"); $("#authEmail").value=email; $("#authPassword").value="";
+          setAuthMessage(
+            "Account created. Check your email and click the confirmation link, then sign in.",
+            "success"
+          );
+          setAuthMode("signin");
+          $("#authEmail").value=email;
+          $("#authPassword").value="";
         }
       }else{
         const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
@@ -3083,26 +3190,52 @@
             setAuthMessage("Wrong password, or no account exists with this email.","error");
           else if(x.includes("email not confirmed"))
             setAuthMessage("Please confirm your email first. Check your inbox for the confirmation link.","error");
-          else setAuthMessage(error.message,"error");
+          else
+            setAuthMessage(error.message,"error");
           return;
         }
-        currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=currentUser.email||"Signed in"; showAuth(false); await init();
+        currentUser=data.user;
+        cloudReady=true;
+        $("#authUserEmail").textContent=currentUser.email||"Signed in";
+        showAuth(false);
+        await init();
       }
-    }finally{ $("#authSubmit").disabled=false; }
+    }catch(err){
+      setAuthMessage(err?.message||"Something went wrong. Please try again.","error");
+    }finally{
+      $("#authSubmit").disabled=false;
+    }
   });
 
-  $("#authSignup").addEventListener("click",()=>setAuthMode("signup"));
+  // The visible "Create account" button now starts signup directly instead of requiring
+  // a second click after switching modes.
+  $("#authSignup").addEventListener("click",()=>{
+    setAuthMode("signup");
+    const email=$("#authEmail").value.trim();
+    const password=$("#authPassword").value;
+    if(validEmail(email) && password.length>=6) $("#authForm").requestSubmit();
+    else $("#authPassword").focus();
+  });
 
   $("#forgotPasswordBtn").addEventListener("click",async()=>{
     const email=$("#authEmail").value.trim();
-    if(!validEmail(email)){setAuthMessage("Enter your email address first, then click Forgot password.","error");$("#authEmail").focus();return;}
-    $("#forgotPasswordBtn").disabled=true; setAuthMessage("Sending password reset email…");
+    if(!validEmail(email)){
+      setAuthMessage("Enter your email address first, then click Forgot password.","error");
+      $("#authEmail").focus();
+      return;
+    }
+    $("#forgotPasswordBtn").disabled=true;
+    setAuthMessage("Sending password reset email…");
     try{
       const redirectTo=window.location.origin+window.location.pathname;
       const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});
       if(error) setAuthMessage(error.message,"error");
-      else setAuthMessage("If an account exists for this email, a password reset link has been sent.","success");
-    }finally{ $("#forgotPasswordBtn").disabled=false; }
+      else setAuthMessage("Password reset email sent. Check your inbox and open the link on this website.","success");
+    }catch(err){
+      setAuthMessage(err?.message||"Could not send the reset email.","error");
+    }finally{
+      $("#forgotPasswordBtn").disabled=false;
+    }
   });
 
   $("#passwordToggle").addEventListener("click",()=>{
@@ -3111,8 +3244,52 @@
     $("#passwordToggle").textContent=visible?"Show":"Hide";
   });
 
-  $("#signOutBtn").addEventListener("click",async()=>{ if(supabaseClient) await supabaseClient.auth.signOut(); location.reload(); });
-  if(supabaseClient){ supabaseClient.auth.onAuthStateChange((_event,session)=>{ if(session?.user){currentUser=session.user;cloudReady=true;} }); }
+  $("#newPasswordToggle").addEventListener("click",()=>{
+    const input=$("#newPassword"), visible=input.type==="text";
+    input.type=visible?"password":"text";
+    $("#newPasswordToggle").textContent=visible?"Show":"Hide";
+  });
+
+  $("#saveNewPassword").addEventListener("click",async()=>{
+    const password=$("#newPassword").value;
+    const confirm=$("#confirmPassword").value;
+    if(password.length<6){
+      setRecoveryMessage("Password must be at least 6 characters.","error");
+      return;
+    }
+    if(password!==confirm){
+      setRecoveryMessage("Passwords do not match.","error");
+      return;
+    }
+    const btn=$("#saveNewPassword");
+    btn.disabled=true;
+    setRecoveryMessage("Updating your password…");
+    try{
+      const {error}=await supabaseClient.auth.updateUser({password});
+      if(error){
+        setRecoveryMessage(error.message,"error");
+        return;
+      }
+      setRecoveryMessage("Password updated successfully. You can now sign in with your new password.","success");
+      $("#newPassword").value="";
+      $("#confirmPassword").value="";
+      setTimeout(async()=>{
+        await supabaseClient.auth.signOut();
+        showRecovery(false);
+        setAuthMode("signin");
+        setAuthMessage("Password changed. Sign in with your new password.","success");
+      },900);
+    }catch(err){
+      setRecoveryMessage(err?.message||"Could not update your password.","error");
+    }finally{
+      btn.disabled=false;
+    }
+  });
+
+  $("#signOutBtn").addEventListener("click",async()=>{
+    if(supabaseClient) await supabaseClient.auth.signOut();
+    location.reload();
+  });
 
   /* ---------------- Init ---------------- */
 
