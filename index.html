@@ -3064,8 +3064,8 @@
     $("#authSignup").classList.toggle("hidden",signup);
     $("#forgotPasswordBtn").classList.toggle("hidden",signup);
     document.querySelector(".auth-switch").innerHTML=signup
-      ?'Already have an account? <button type="button" class="auth-link" id="switchToSignin">Sign in</button>'
-      :'Don\\'t have an account? <button type="button" class="auth-link" id="switchToSignup">Sign up</button>';
+      ?"Already have an account? <button type="button" class="auth-link" id="switchToSignin">Sign in</button>"
+      :"Don't have an account? <button type="button" class="auth-link" id="switchToSignup">Sign up</button>";
     setAuthMessage("");
     const b=signup?$("#switchToSignin"):$("#switchToSignup");
     if(b) b.addEventListener("click",()=>setAuthMode(signup?"signin":"signup"));
