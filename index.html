@@ -1063,7 +1063,7 @@
     </section>
   </div>
 
-  <p class="storage-note hidden" id="storageNote">Your browser blocked saving (e.g. private/incognito mode) — changes won't be kept after you leave this page.</p>
+  <p class="storage-note hidden" id="storageNote">Your browser blocked saving (e.g. private/incognito mode) — changes won't be kept after you leave this page. Each browser profile has its own private tracker data.</p>
 
 </div>
 
@@ -1189,77 +1189,50 @@
   const monthStorageKey = (y,m) => `habit-tracker:month:${ymKey(y,m)}`;
   const HABITS_KEY = "habit-tracker:habits";
 
-  // Persistence: use Claude's window.storage when available (inside claude.ai),
-  // otherwise fall back to the browser's localStorage so data still survives
-  // forever when this file is opened directly / saved / bookmarked on its own.
-  const HAS_CLAUDE_STORAGE = (typeof window !== "undefined" && window.storage && typeof window.storage.get === "function");
+  // Browser-local persistence for the public version.
+  // Every person who opens this site gets an independent dataset in their
+  // own browser profile. Nothing is shared between users.
+  const STORAGE_PREFIX = "habit-tracker:user:v1:";
   const STORAGE_TIMEOUT_MS = 4000;
 
-  function withTimeout(promise, ms){
-    return new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error("storage timeout")), ms);
-      promise.then(v => { clearTimeout(t); resolve(v); }, err => { clearTimeout(t); reject(err); });
-    });
-  }
-
-  function markStorageIssue(){
-    if(storageOK){
-      storageOK = false;
-      $("#storageNote").classList.remove("hidden");
-    }
+  function storageKey(key){
+    return STORAGE_PREFIX + key;
   }
 
   async function safeGet(key){
-    if(HAS_CLAUDE_STORAGE){
-      try{
-        const r = await withTimeout(window.storage.get(key, false), STORAGE_TIMEOUT_MS);
-        return r ? r.value : null;
-      }catch(e){
-        // fall through to localStorage as a backup
-      }
-    }
     try{
-      const v = localStorage.getItem(key);
-      return v === null ? null : v;
+      const value = localStorage.getItem(storageKey(key));
+      return value === null ? null : value;
     }catch(e){
       markStorageIssue();
       return null;
     }
   }
+
   async function safeSet(key, value){
-    let ok = false;
-    if(HAS_CLAUDE_STORAGE){
-      try{
-        const r = await withTimeout(window.storage.set(key, value, false), STORAGE_TIMEOUT_MS);
-        ok = !!r;
-      }catch(e){ ok = false; }
-    }
     try{
-      localStorage.setItem(key, value);
-      ok = true;
+      localStorage.setItem(storageKey(key), value);
+      return true;
     }catch(e){
-      // localStorage unavailable (e.g. private browsing quota) — ignore, keep whatever ok already is
+      markStorageIssue();
+      return false;
     }
-    if(!ok) markStorageIssue();
-    return ok;
   }
 
-  // For window.storage.list() calls (export), fall back to scanning localStorage keys.
+  // List this app's private browser-local keys for export.
   async function listKeysWithPrefix(prefix){
-    if(HAS_CLAUDE_STORAGE){
-      try{
-        const res = await withTimeout(window.storage.list(prefix, false), STORAGE_TIMEOUT_MS);
-        if(res && res.keys) return res.keys;
-      }catch(e){ /* fall through */ }
-    }
     try{
       const keys = [];
-      for(let i=0;i<localStorage.length;i++){
+      const fullPrefix = storageKey(prefix);
+      for(let i = 0; i < localStorage.length; i++){
         const k = localStorage.key(i);
-        if(k && k.indexOf(prefix)===0) keys.push(k);
+        if(k && k.startsWith(fullPrefix)){
+          keys.push(k.slice(STORAGE_PREFIX.length));
+        }
       }
       return keys;
     }catch(e){
+      markStorageIssue();
       return [];
     }
   }
@@ -1271,10 +1244,15 @@
     }
     habits = DEFAULT_HABITS.map(h => ({...h}));
     await safeSet(HABITS_KEY, JSON.stringify(habits));
-    // Seed real September 2026 history so the app opens with genuine data.
-    const seedYm = "2026-09";
-    monthCache[seedYm] = {"1":[1,2,5,6,13], "2":[1,4,5]};
-    await safeSet(monthStorageKey(2026,9), JSON.stringify(monthCache[seedYm]));
+    // One-time starter data for a brand-new browser dataset.
+    // Never overwrite an existing user's history.
+    const seedFlag = await safeGet("initialized");
+    if(seedFlag !== "1"){
+      const seedYm = "2026-09";
+      monthCache[seedYm] = {"1":[1,2,5,6,13], "2":[1,4,5]};
+      await safeSet(monthStorageKey(2026,9), JSON.stringify(monthCache[seedYm]));
+      await safeSet("initialized", "1");
+    }
   }
 
   async function loadMonthData(y,m){
