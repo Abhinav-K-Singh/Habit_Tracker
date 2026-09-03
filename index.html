@@ -3064,12 +3064,17 @@
     $("#authSignup").classList.toggle("hidden",signup);
     $("#forgotPasswordBtn").classList.toggle("hidden",signup);
     document.querySelector(".auth-switch").innerHTML=signup
-      ?"Already have an account? <button type="button" class="auth-link" id="switchToSignin">Sign in</button>"
-      :"Don't have an account? <button type="button" class="auth-link" id="switchToSignup">Sign up</button>";
+      ?"Already have an account? <button type='button' class='auth-link' id='switchToSignin'>Sign in</button>"
+      :"Don't have an account? <button type='button' class='auth-link' id='switchToSignup'>Sign up</button>";
     setAuthMessage("");
-    const b=signup?$("#switchToSignin"):$("#switchToSignup");
-    if(b) b.addEventListener("click",()=>setAuthMode(signup?"signin":"signup"));
   }
+
+  // Event delegation: works for the switch link no matter how it was rendered
+  // (the static one in the initial HTML, or the ones setAuthMode() re-creates).
+  document.querySelector(".auth-switch").addEventListener("click",e=>{
+    if(e.target.id==="switchToSignup") setAuthMode("signup");
+    else if(e.target.id==="switchToSignin") setAuthMode("signin");
+  });
 
   function showRecovery(show){
     const box=$("#authRecovery");
