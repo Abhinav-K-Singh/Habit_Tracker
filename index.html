@@ -747,9 +747,40 @@
     opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
   }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ---------- Cloud account ---------- */
+  .auth-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .auth-card{width:min(430px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:28px;}
+  .auth-card h2{font-family:'Fraunces',serif;font-size:25px;margin:0 0 6px;}
+  .auth-card p{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 20px;}
+  .auth-field{margin-bottom:12px;}
+  .auth-field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px;}
+  .auth-field input{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel-soft);color:var(--ink);font:inherit;}
+  .auth-actions{display:flex;gap:8px;margin-top:14px;}
+  .auth-actions button{flex:1;padding:10px;border-radius:8px;font:600 13px inherit;}
+  .auth-primary{border:none;background:var(--ink);color:#fff;}
+  .auth-secondary{border:1px solid var(--line);background:var(--panel-soft);color:var(--ink);}
+  .auth-msg{min-height:18px;margin-top:12px!important;font-size:12px!important;}
+  .auth-user{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;margin-right:4px;}
+  .auth-user button{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:6px 10px;font:600 11px inherit;}
+  .cloud-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--done-4);background:var(--panel-soft);border:1px solid var(--line);padding:4px 8px;border-radius:999px;}
 </style>
 </head>
 <body>
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <span class="cloud-badge">☁ Cloud sync</span>
+    <h2>Your habits, wherever you sign in.</h2>
+    <p>Create an account or sign in. Your habits, history, goals and settings are stored in the cloud, so clearing browser data will not erase them.</p>
+    <form id="authForm">
+      <div class="auth-field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required></div>
+      <div class="auth-field"><label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></div>
+      <div class="auth-actions"><button class="auth-primary" type="submit" id="authSubmit">Sign in</button><button class="auth-secondary" type="button" id="authSignup">Create account</button></div>
+      <p class="auth-msg" id="authMsg"></p>
+    </form>
+  </div>
+</div>
+
 
 <button class="habits-tab" id="habitsNavToggle" aria-label="Open habits panel">Habits</button>
 
@@ -761,6 +792,7 @@
       <p>Keep the score with yourself, one day at a time.</p>
     </div>
     <div class="header-actions">
+      <div class="auth-user"><span id="authUserEmail"></span><button type="button" id="signOutBtn">Sign out</button></div>
       <button class="btn-ghost" id="todayBtn">Today</button>
     </div>
   </header>
@@ -1063,7 +1095,7 @@
     </section>
   </div>
 
-  <p class="storage-note hidden" id="storageNote">Your browser blocked saving (e.g. private/incognito mode) — changes won't be kept after you leave this page. Each browser profile has its own private tracker data.</p>
+  <p class="storage-note hidden" id="storageNote">Cloud sync is enabled for your account. Your data is stored in the cloud and survives clearing browser cache/site data. Keep your login details safe.</p>
 
 </div>
 
@@ -1117,6 +1149,7 @@
 </div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   "use strict";
@@ -1189,52 +1222,78 @@
   const monthStorageKey = (y,m) => `habit-tracker:month:${ymKey(y,m)}`;
   const HABITS_KEY = "habit-tracker:habits";
 
-  // Browser-local persistence for the public version.
-  // Every person who opens this site gets an independent dataset in their
-  // own browser profile. Nothing is shared between users.
-  const STORAGE_PREFIX = "habit-tracker:user:v1:";
-  const STORAGE_TIMEOUT_MS = 4000;
+  // Cloud persistence. Configure these two values with your Supabase project.
+  // Use only the publishable/anon key in this file. Never put a service_role key here.
+  const SUPABASE_URL = "https://awtugaphwsromttkxfpa.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_I1OPewZVJiyiQLvhwb8Bwg_g4uXZ7hK";
+  const CLOUD_CONFIGURED = !SUPABASE_URL.includes("YOUR_") && !SUPABASE_PUBLISHABLE_KEY.includes("YOUR_");
+  const supabaseClient = CLOUD_CONFIGURED && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
+  const CLOUD_TABLE = "habit_tracker_data";
+  let currentUser = null;
+  let cloudReady = false;
+  let localMigrationDone = false;
 
-  function storageKey(key){
-    return STORAGE_PREFIX + key;
+  function localKey(key){ return "habit-tracker:user:v1:" + key; }
+  async function localGet(key){ try{return localStorage.getItem(localKey(key));}catch(e){return null;} }
+  async function localSet(key,value){ try{localStorage.setItem(localKey(key),value);return true;}catch(e){return false;} }
+
+  async function cloudGet(key){
+    if(!supabaseClient || !currentUser) return null;
+    const {data,error}=await supabaseClient.from(CLOUD_TABLE).select("value").eq("user_id",currentUser.id).eq("key",key).maybeSingle();
+    if(error) throw error;
+    return data ? data.value : null;
+  }
+  async function cloudSet(key,value){
+    if(!supabaseClient || !currentUser) return false;
+    const {error}=await supabaseClient.from(CLOUD_TABLE).upsert({user_id:currentUser.id,key,value,updated_at:new Date().toISOString()},{onConflict:"user_id,key"});
+    if(error) throw error;
+    return true;
   }
 
   async function safeGet(key){
     try{
-      const value = localStorage.getItem(storageKey(key));
-      return value === null ? null : value;
-    }catch(e){
-      markStorageIssue();
-      return null;
-    }
+      if(cloudReady) return await cloudGet(key);
+      return await localGet(key);
+    }catch(e){ console.error(e); markStorageIssue(); return null; }
   }
-
-  async function safeSet(key, value){
+  async function safeSet(key,value){
     try{
-      localStorage.setItem(storageKey(key), value);
-      return true;
-    }catch(e){
-      markStorageIssue();
-      return false;
-    }
+      if(cloudReady) return await cloudSet(key,value);
+      return await localSet(key,value);
+    }catch(e){ console.error(e); markStorageIssue(); return false; }
   }
 
-  // List this app's private browser-local keys for export.
   async function listKeysWithPrefix(prefix){
-    try{
-      const keys = [];
-      const fullPrefix = storageKey(prefix);
-      for(let i = 0; i < localStorage.length; i++){
-        const k = localStorage.key(i);
-        if(k && k.startsWith(fullPrefix)){
-          keys.push(k.slice(STORAGE_PREFIX.length));
-        }
-      }
-      return keys;
-    }catch(e){
-      markStorageIssue();
-      return [];
+    if(cloudReady && currentUser){
+      try{
+        const {data,error}=await supabaseClient.from(CLOUD_TABLE).select("key").eq("user_id",currentUser.id).like("key",prefix+"%");
+        if(error) throw error;
+        return (data||[]).map(x=>x.key);
+      }catch(e){ console.error(e); return []; }
     }
+    try{
+      const keys=[]; const fullPrefix=localKey(prefix);
+      for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.startsWith(fullPrefix)) keys.push(k.slice("habit-tracker:user:v1:".length)); }
+      return keys;
+    }catch(e){return [];}
+  }
+
+  async function migrateLocalDataToCloud(){
+    if(!cloudReady || localMigrationDone) return;
+    const marker=await localGet("cloud-migrated");
+    if(marker==="1"){localMigrationDone=true;return;}
+    const keys=await listLocalKeys();
+    if(!keys.length){localMigrationDone=true;return;}
+    const existing=await cloudGet(HABITS_KEY);
+    if(existing===null){
+      for(const key of keys){ const value=await localGet(key); if(value!==null) await cloudSet(key,value); }
+      await localSet("cloud-migrated","1");
+      showToast("Your local data was moved to the cloud");
+    }
+    localMigrationDone=true;
+  }
+  async function listLocalKeys(){
+    try{ const keys=[]; const prefix="habit-tracker:user:v1:"; for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(prefix))keys.push(k.slice(prefix.length));} return keys; }catch(e){return [];}
   }
 
   async function loadHabits(){
@@ -2923,11 +2982,51 @@
     renderWeeklyPage();
   });
 
+  /* ---------------- Cloud authentication ---------------- */
+  function setAuthMessage(msg){ const el=$("#authMsg"); if(el) el.textContent=msg||""; }
+  function showAuth(show){ $("#authOverlay").classList.toggle("hidden",!show); }
+  async function initializeCloudAuth(){
+    if(!CLOUD_CONFIGURED || !supabaseClient){
+      showAuth(true);
+      setAuthMessage("Add your Supabase URL and publishable key in this HTML file before using cloud sync.");
+      $("#authSubmit").disabled=true; $("#authSignup").disabled=true;
+      return false;
+    }
+    const {data,error}=await supabaseClient.auth.getSession();
+    if(error){setAuthMessage(error.message);showAuth(true);return false;}
+    currentUser=data.session?.user||null;
+    if(!currentUser){showAuth(true);return false;}
+    cloudReady=true;
+    $("#authUserEmail").textContent=currentUser.email||"Signed in";
+    showAuth(false);
+    return true;
+  }
+  $("#authForm").addEventListener("submit",async e=>{
+    e.preventDefault(); setAuthMessage("Signing in…");
+    const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+    if(error){setAuthMessage(error.message);return;}
+    currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=currentUser.email||"Signed in"; showAuth(false); await init();
+  });
+  $("#authSignup").addEventListener("click",async()=>{
+    const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
+    if(!email||password.length<6){setAuthMessage("Enter an email and a password of at least 6 characters.");return;}
+    setAuthMessage("Creating account…");
+    const {data,error}=await supabaseClient.auth.signUp({email,password});
+    if(error){setAuthMessage(error.message);return;}
+    if(data.session){ currentUser=data.user; cloudReady=true; $("#authUserEmail").textContent=email; showAuth(false); await init(); }
+    else setAuthMessage("Account created. Check your email to confirm it, then sign in.");
+  });
+  $("#signOutBtn").addEventListener("click",async()=>{ if(supabaseClient) await supabaseClient.auth.signOut(); location.reload(); });
+  if(supabaseClient){ supabaseClient.auth.onAuthStateChange((_event,session)=>{ if(session?.user){currentUser=session.user;cloudReady=true;} }); }
+
   /* ---------------- Init ---------------- */
 
   async function init(){
+    if(!currentUser || !cloudReady) return;
     $("#calendarGrid").innerHTML = '<div class="loading-line">Loading your history…</div>';
     $("#dailyChecklist").innerHTML = '<li class="empty-habits">Loading…</li>';
+    await migrateLocalDataToCloud();
     await loadSettings();
     applySettings();
     await loadHabits();
@@ -2941,7 +3040,7 @@
     switchPage(currentPage);
   }
 
-  init();
+  initializeCloudAuth().then(ok => { if(ok) init(); });
 
 })();
 </script>
